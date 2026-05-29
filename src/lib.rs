@@ -4,9 +4,9 @@
 // each completed row to a temp file (flat RSS on large exports). The Python API
 // is deliberately append-only: no random cell access, no editing existing files.
 
+use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, Timelike};
 use pyo3::exceptions::{PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
-use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, Timelike};
 use pyo3::types::{PyBool, PyList, PyString};
 use rust_xlsxwriter::{ExcelDateTime, Format, Workbook, Worksheet, XlsxError};
 
@@ -76,7 +76,14 @@ impl PyWorksheet {
             .as_mut()
             .ok_or_else(|| PyRuntimeError::new_err("worksheet already saved"))?;
         for (col, value) in row.iter().enumerate() {
-            write_value(worksheet, row_index, col as u16, &value, date_format, datetime_format)?;
+            write_value(
+                worksheet,
+                row_index,
+                col as u16,
+                &value,
+                date_format,
+                datetime_format,
+            )?;
         }
         self.next_row += 1;
         Ok(())
@@ -108,7 +115,12 @@ fn write_value(
     } else if let Ok(aware) = value.extract::<DateTime<FixedOffset>>() {
         // Timezone-aware: write the naive wall-clock fields, dropping the tz.
         worksheet
-            .write_datetime_with_format(row, col, &excel_datetime(aware.naive_local())?, datetime_format)
+            .write_datetime_with_format(
+                row,
+                col,
+                &excel_datetime(aware.naive_local())?,
+                datetime_format,
+            )
             .map_err(to_pyerr)?;
     } else if let Ok(date) = value.extract::<NaiveDate>() {
         worksheet
@@ -134,7 +146,8 @@ fn write_value(
 }
 
 fn excel_date(date: NaiveDate) -> PyResult<ExcelDateTime> {
-    ExcelDateTime::from_ymd(date.year() as u16, date.month() as u8, date.day() as u8).map_err(to_pyerr)
+    ExcelDateTime::from_ymd(date.year() as u16, date.month() as u8, date.day() as u8)
+        .map_err(to_pyerr)
 }
 
 fn excel_datetime(datetime: NaiveDateTime) -> PyResult<ExcelDateTime> {

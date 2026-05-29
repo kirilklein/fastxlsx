@@ -34,8 +34,9 @@ class RoundTripTest(unittest.TestCase):
             path = os.path.join(tmp, "out.xlsx")
             workbook = fastxlsx.Workbook()
             sheet = workbook.add_sheet("Dates")
-            sheet.append([datetime.date(2024, 1, 15),
-                          datetime.datetime(2024, 1, 15, 13, 30, 45)])
+            sheet.append(
+                [datetime.date(2024, 1, 15), datetime.datetime(2024, 1, 15, 13, 30, 45)]
+            )
             workbook.save(path)
 
             rows = self._read_back(path)
@@ -48,12 +49,15 @@ class RoundTripTest(unittest.TestCase):
             path = os.path.join(tmp, "out.xlsx")
             workbook = fastxlsx.Workbook()
             sheet = workbook.add_sheet("TZ")
-            aware = datetime.datetime(2024, 1, 15, 13, 30, 45, tzinfo=datetime.timezone.utc)
+            aware = datetime.datetime(
+                2024, 1, 15, 13, 30, 45, tzinfo=datetime.timezone.utc
+            )
             sheet.append([aware])
             workbook.save(path)
 
-            self.assertEqual(self._read_back(path)[0][0],
-                             datetime.datetime(2024, 1, 15, 13, 30, 45))
+            self.assertEqual(
+                self._read_back(path)[0][0], datetime.datetime(2024, 1, 15, 13, 30, 45)
+            )
 
     def test_multiple_sheets(self):
         with tempfile.TemporaryDirectory() as tmp:
