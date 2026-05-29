@@ -6,8 +6,9 @@
 
 use pyo3::exceptions::{PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
+use chrono::{DateTime, Datelike, FixedOffset, NaiveDate, NaiveDateTime, Timelike};
 use pyo3::types::{PyBool, PyList, PyString};
-use rust_xlsxwriter::{Format, Workbook, Worksheet, XlsxError};
+use rust_xlsxwriter::{ExcelDateTime, Format, Workbook, Worksheet, XlsxError};
 
 fn to_pyerr(err: XlsxError) -> PyErr {
     PyRuntimeError::new_err(err.to_string())
@@ -100,13 +101,18 @@ fn write_value(
         worksheet
             .write_boolean(row, col, boolean.is_true())
             .map_err(to_pyerr)?;
-    } else if let Ok(datetime) = value.extract::<chrono::NaiveDateTime>() {
+    } else if let Ok(datetime) = value.extract::<NaiveDateTime>() {
         worksheet
-            .write_datetime_with_format(row, col, &datetime, datetime_format)
+            .write_datetime_with_format(row, col, &excel_datetime(datetime)?, datetime_format)
             .map_err(to_pyerr)?;
-    } else if let Ok(date) = value.extract::<chrono::NaiveDate>() {
+    } else if let Ok(aware) = value.extract::<DateTime<FixedOffset>>() {
+        // Timezone-aware: write the naive wall-clock fields, dropping the tz.
         worksheet
-            .write_datetime_with_format(row, col, &date, date_format)
+            .write_datetime_with_format(row, col, &excel_datetime(aware.naive_local())?, datetime_format)
+            .map_err(to_pyerr)?;
+    } else if let Ok(date) = value.extract::<NaiveDate>() {
+        worksheet
+            .write_datetime_with_format(row, col, &excel_date(date)?, date_format)
             .map_err(to_pyerr)?;
     } else if let Ok(integer) = value.extract::<i64>() {
         worksheet
@@ -125,6 +131,17 @@ fn write_value(
         )));
     }
     Ok(())
+}
+
+fn excel_date(date: NaiveDate) -> PyResult<ExcelDateTime> {
+    ExcelDateTime::from_ymd(date.year() as u16, date.month() as u8, date.day() as u8).map_err(to_pyerr)
+}
+
+fn excel_datetime(datetime: NaiveDateTime) -> PyResult<ExcelDateTime> {
+    let seconds = datetime.second() as f64 + datetime.nanosecond() as f64 / 1_000_000_000.0;
+    excel_date(datetime.date())?
+        .and_hms(datetime.hour() as u16, datetime.minute() as u8, seconds)
+        .map_err(to_pyerr)
 }
 
 #[pymodule]

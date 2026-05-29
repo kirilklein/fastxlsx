@@ -40,6 +40,19 @@ class RoundTripTest(unittest.TestCase):
             self.assertEqual(rows[0][0], datetime.date(2024, 1, 15))
             self.assertEqual(rows[0][1], datetime.datetime(2024, 1, 15, 13, 30, 45))
 
+    def test_timezone_aware_datetime_keeps_wallclock(self):
+        # tzinfo is dropped, but the wall-clock time (incl. the time of day) is kept.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "out.xlsx")
+            workbook = fastxlsx.Workbook()
+            sheet = workbook.add_sheet("TZ")
+            aware = datetime.datetime(2024, 1, 15, 13, 30, 45, tzinfo=datetime.timezone.utc)
+            sheet.append([aware])
+            workbook.save(path)
+
+            self.assertEqual(self._read_back(path)[0][0],
+                             datetime.datetime(2024, 1, 15, 13, 30, 45))
+
     def test_multiple_sheets(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "out.xlsx")
