@@ -1,0 +1,12 @@
+[package]
+name = "fastxlsx"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "fastxlsx"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+rust_xlsxwriter = { version = "0.95.0", features = ["constant_memory"] }
+pyo3 = { version = "0.24", features = ["extension-module", "abi3-py38"] }
