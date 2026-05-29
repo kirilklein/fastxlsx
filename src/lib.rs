@@ -7,7 +7,7 @@
 use pyo3::exceptions::{PyRuntimeError, PyTypeError};
 use pyo3::prelude::*;
 use pyo3::types::{PyBool, PyList, PyString};
-use rust_xlsxwriter::{Workbook, Worksheet, XlsxError};
+use rust_xlsxwriter::{Format, Workbook, Worksheet, XlsxError};
 
 fn to_pyerr(err: XlsxError) -> PyErr {
     PyRuntimeError::new_err(err.to_string())
@@ -37,6 +37,8 @@ impl PyWorkbook {
             PyWorksheet {
                 inner: Some(worksheet),
                 next_row: 0,
+                date_format: Format::new().set_num_format("yyyy-mm-dd"),
+                datetime_format: Format::new().set_num_format("yyyy-mm-dd hh:mm:ss"),
             },
         )?;
         self.sheets.push(py_worksheet.clone_ref(py));
@@ -58,31 +60,38 @@ struct PyWorksheet {
     // None once the workbook has been saved (the worksheet is moved into it).
     inner: Option<Worksheet>,
     next_row: u32,
+    date_format: Format,
+    datetime_format: Format,
 }
 
 #[pymethods]
 impl PyWorksheet {
     fn append(&mut self, row: &Bound<'_, PyList>) -> PyResult<()> {
+        let row_index = self.next_row;
+        let date_format = &self.date_format;
+        let datetime_format = &self.datetime_format;
         let worksheet = self
             .inner
             .as_mut()
             .ok_or_else(|| PyRuntimeError::new_err("worksheet already saved"))?;
-        let row_index = self.next_row;
         for (col, value) in row.iter().enumerate() {
-            write_value(worksheet, row_index, col as u16, &value)?;
+            write_value(worksheet, row_index, col as u16, &value, date_format, datetime_format)?;
         }
         self.next_row += 1;
         Ok(())
     }
 }
 
-// Map a Python scalar onto the right rust_xlsxwriter writer. bool is checked
-// before int because Python bool is a subclass of int. None leaves the cell blank.
+// Map a Python scalar onto the right rust_xlsxwriter writer. Type checks are
+// ordered for Python's subclassing: bool before int (bool subclasses int), and
+// datetime before date (datetime subclasses date). None leaves the cell blank.
 fn write_value(
     worksheet: &mut Worksheet,
     row: u32,
     col: u16,
     value: &Bound<'_, PyAny>,
+    date_format: &Format,
+    datetime_format: &Format,
 ) -> PyResult<()> {
     if value.is_none() {
         return Ok(());
@@ -90,6 +99,14 @@ fn write_value(
     if let Ok(boolean) = value.downcast::<PyBool>() {
         worksheet
             .write_boolean(row, col, boolean.is_true())
+            .map_err(to_pyerr)?;
+    } else if let Ok(datetime) = value.extract::<chrono::NaiveDateTime>() {
+        worksheet
+            .write_datetime_with_format(row, col, &datetime, datetime_format)
+            .map_err(to_pyerr)?;
+    } else if let Ok(date) = value.extract::<chrono::NaiveDate>() {
+        worksheet
+            .write_datetime_with_format(row, col, &date, date_format)
             .map_err(to_pyerr)?;
     } else if let Ok(integer) = value.extract::<i64>() {
         worksheet
