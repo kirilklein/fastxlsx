@@ -8,7 +8,9 @@ from python_calamine import CalamineWorkbook
 
 class RoundTripTest(unittest.TestCase):
     def _read_back(self, path, sheet_index=0):
-        return CalamineWorkbook.from_path(path).get_sheet_by_index(sheet_index).to_python()
+        return (
+            CalamineWorkbook.from_path(path).get_sheet_by_index(sheet_index).to_python()
+        )
 
     def test_mixed_types_roundtrip(self):
         with tempfile.TemporaryDirectory() as tmp:

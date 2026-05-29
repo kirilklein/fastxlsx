@@ -74,7 +74,9 @@ ENGINES = {
     "fastxlsx": run_fastxlsx,
     "openpyxl_writeonly": run_openpyxl_writeonly,
     "xlsxwriter": lambda r, m, p: run_xlsxwriter(r, m, p, constant_memory=False),
-    "xlsxwriter_constant": lambda r, m, p: run_xlsxwriter(r, m, p, constant_memory=True),
+    "xlsxwriter_constant": lambda r, m, p: run_xlsxwriter(
+        r, m, p, constant_memory=True
+    ),
     "pandas": run_pandas,
 }
 

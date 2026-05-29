@@ -14,7 +14,9 @@ const ROWS: u32 = 200_000;
 const COLS: u16 = 5;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let mode = std::env::args().nth(1).unwrap_or_else(|| "standard".to_string());
+    let mode = std::env::args()
+        .nth(1)
+        .unwrap_or_else(|| "standard".to_string());
     let start = Instant::now();
 
     let mut workbook = Workbook::new();

@@ -9,7 +9,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-ENGINES = ["fastxlsx", "openpyxl_writeonly", "xlsxwriter", "xlsxwriter_constant", "pandas"]
+ENGINES = [
+    "fastxlsx",
+    "openpyxl_writeonly",
+    "xlsxwriter",
+    "xlsxwriter_constant",
+    "pandas",
+]
 PROFILES = ["mixed", "numeric", "strings", "wide"]
 PROFILE_DESCRIPTIONS = {
     "mixed": "200k rows x 5 cols, mixed types (str/int/float/bool)",
@@ -23,7 +29,9 @@ BENCH = Path(__file__).with_name("bench_engines.py")
 def run_one(engine, profile):
     proc = subprocess.run(
         [sys.executable, str(BENCH), engine, profile],
-        capture_output=True, text=True, check=True,
+        capture_output=True,
+        text=True,
+        check=True,
     )
     _, _, _, time_s, rss_mb = proc.stdout.split()
     return float(time_s), float(rss_mb)
