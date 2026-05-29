@@ -17,7 +17,9 @@ wb.save("patients.xlsx")
 
 The API is deliberately append-only: forward streaming, one row at a time, no random
 cell access and no mutation of existing files. Supported cell types today: `str`, `int`,
-`float`, `bool`, `None` (blank).
+`float`, `bool`, `None` (blank), `datetime.date` (`yyyy-mm-dd`) and `datetime.datetime`
+(`yyyy-mm-dd hh:mm:ss`). Timezone info is ignored — naive wall-clock fields are written,
+matching openpyxl/XlsxWriter (Excel has no timezone concept).
 
 ## Benchmarks
 
